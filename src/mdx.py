@@ -105,16 +105,18 @@ class MDX:
         """
 
         if combine:
-            processed_wave = None  # Initializing as None instead of [] for later numpy array concatenation
+            processed_segments = []
             for segment_count, segment in enumerate(wave):
                 start = 0 if segment_count == 0 else margin_size
                 end = None if segment_count == len(wave) - 1 else -margin_size
                 if margin_size == 0:
                     end = None
-                if processed_wave is None:  # Create array for first segment
-                    processed_wave = segment[:, start:end]
-                else:  # Concatenate to existing array for subsequent segments
-                    processed_wave = np.concatenate((processed_wave, segment[:, start:end]), axis=-1)
+                processed_segments.append(segment[:, start:end])
+            processed_wave = (
+                np.concatenate(processed_segments, axis=-1)
+                if processed_segments
+                else None
+            )
 
         else:
             processed_wave = []
