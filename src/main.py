@@ -3,7 +3,6 @@ import gc
 import hashlib
 import json
 import os
-import shlex
 import subprocess
 from contextlib import suppress
 from urllib.parse import urlparse, parse_qs
@@ -123,16 +122,43 @@ def get_audio_paths(song_dir):
 
 
 def convert_to_stereo(audio_path):
-    wave, sr = librosa.load(audio_path, mono=False, sr=44100)
-
-    # check if mono
-    if type(wave[0]) != np.ndarray:
+    probe = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "a:0",
+            "-show_entries",
+            "stream=channels",
+            "-of",
+            "csv=p=0",
+            audio_path,
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    if int(probe.stdout.strip()) == 1:
         stereo_path = f'{os.path.splitext(audio_path)[0]}_stereo.wav'
-        command = shlex.split(f'ffmpeg -y -loglevel error -i "{audio_path}" -ac 2 -f wav "{stereo_path}"')
-        subprocess.run(command)
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-loglevel",
+                "error",
+                "-i",
+                audio_path,
+                "-ac",
+                "2",
+                "-f",
+                "wav",
+                stereo_path,
+            ],
+            check=True,
+        )
         return stereo_path
-    else:
-        return audio_path
+    return audio_path
 
 
 def pitch_shift(audio_path, pitch_change):
